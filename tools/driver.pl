@@ -74,7 +74,8 @@ my @CSVResults = (
 "bfs",
 "bfs_pcie",
 "bfs_teps",
-"md5hash"
+"md5hash",
+"tpch_bw"
 #"qtc",
 #"qtc_kernel"
 );
@@ -207,6 +208,9 @@ my @SerialBenchmarks = (
 ],
 [ "Triad",             1, 1, 0,
   ["triad_bw",                    \&findmax,     "TriadBdwth"]
+],
+[ "Tpch",             0, 1, 0,
+  ["tpch_bw",                    \&findmax,     "TpchBdwth"]
 ],
 [ "S3D",               1, 1, 0,
   ["s3d",                         \&findmax,     "S3D-SP"],

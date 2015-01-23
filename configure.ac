@@ -458,6 +458,7 @@ AC_CONFIG_FILES([Makefile
                  src/opencl/level1/spmv/epmpi/Makefile
                  src/opencl/level1/stencil2d/Makefile
                  src/opencl/level1/stencil2d/tpmpi/Makefile
+		 src/opencl/level1/tpch/Makefile
                  src/opencl/level1/triad/Makefile
                  src/opencl/level1/triad/epmpi/Makefile
                  src/opencl/level2/Makefile
