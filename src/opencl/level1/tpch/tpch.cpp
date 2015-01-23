@@ -1166,12 +1166,12 @@ int SetProgram(string fileName, cl_context ctx, cl_device_id dev)
     //string opts = "-cl-mad-enable -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-finite-math-only";
 
     //***USE THIS STRING TO DEBUG INTO THE OPENCL KERNELS WITH INTEL COMPILERS***
-    string opts = "-g -s \"" + clFileName + "\" -cl-opt-disable";
+    //string opts = "-g -s \"" + clFileName + "\" -cl-opt-disable";
     //string opts = "-cl-opt-disable";
 
     //Right now (Dec. 2014) Intel OpenCL implementations have a weird issue with their vectorizing
     //component which manifests as a segfault. For this reason, optimizations are turned off.
-    //string opts = "-cl-opt-disable";
+    string opts = "-cl-opt-disable";
 
     //***USE THIS STRING TO DEBUG INTO THE OPENCL KERNELS WITH AMD COMPILERS***
     //string opts = "-g -O0";
@@ -1275,16 +1275,18 @@ void SetTestRange(BmkParams* param, int* minIdx, int* maxIdx)
     }
     else
     {
-        do
+        /*do
         {
             inputSize = tupleSz*inputElemSizes[cnt];
             cnt++; 	
             cout<<"Input size"<<inputSize<<endl;
         }
-        while(inputSize < param->maxClAllocBytes);
+        while(inputSize < param->maxClAllocBytes);*/
 
+	//For now set the default as 256 elements minimum and 32 MB of input
+	//max
         *minIdx = 7;
-        *maxIdx = cnt;
+        *maxIdx = 20;
     }
 
     //Size the input and output buffers to hold the largest test input	
