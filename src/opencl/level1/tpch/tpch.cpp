@@ -1287,6 +1287,8 @@ void SetTestRange(BmkParams* param, int* minIdx, int* maxIdx)
 	//max
         *minIdx = 7;
         *maxIdx = 20;
+	//hardcode cnt to 20 to fix CL_INVALID_VALUE error
+	cnt=20;
     }
 
     //Size the input and output buffers to hold the largest test input	
