@@ -139,6 +139,7 @@ __kernel void Selection(__global Tuple* input, __global Tuple* output, const uns
 	int groups = get_num_groups(0);
 
 	const unsigned int partitions    = groups;
+	//add partitions - 1 for rounding purposes
 	unsigned int chunkSize = (elements + partitions - 1) / partitions;
 	unsigned int partitionSize = (group_id != global_size - 1) ? chunkSize : (elements - group_id  * chunkSize);
 
@@ -155,7 +156,8 @@ __kernel void Selection(__global Tuple* input, __global Tuple* output, const uns
 		VAL_TYPE registers_key;
 		VAL_TYPE registers_val;
 		
-		// coalesced load into registers		
+		// coalesced load into registers
+		// ??		
 		unsigned int input_id = i * local_size	+ local_id;
         unsigned int match = 0;
 		
@@ -541,8 +543,66 @@ __global Tuple* Dma_new(__global Tuple* out, __local Tuple* in, __local Tuple* i
 	return out + elements;
 
 }
+/*
+__kernel void Product(__global Tuple* left_input, __global Tuple* right_input, __global Tuple* output,
+			__local Tuple* buffer, const unsigned int left_elements, const unsigned int right_elements)
+{
+	int global_id = get_global_id(0);
+	int global_size = get_global_size(0);
+	int local_id = get_local_id(0);
+	int local_size = get_local_size(0);
+	int group_id = get_group_id(0);
+	int groups = get_num_groups(0);
 
+	const unsigned int partitions = groups
+	unsigned int chunk_size = (leftElements + partitions - 1) / partitions;
+	unsigned int partition_size = (group_id != global_size - 1) ? chunk_size : (elements - group_id * chunk_size);
 
+	unsigned int begin = chunk_size * group_id;
+	__global Tuple* begin_left = left_input + begin;
+	__global Tuple* begin_right = right_input + begin;
+
+	unsigned int iterations = (partition_size + local_size - 1) / local_size;
+	unsigned int output_index = 0;
+
+	for (unsigned int i = 0; i < iterations; ++i)
+	{
+		for (unsigned int j = 0; j < iterations; j++)
+		{
+			VAL_TYPE left_key, left_val;
+			VAL_TYPE right_key, right_val;
+
+			unsigned int input_id = i * local_size + local_id;
+			
+			if (input_id < partitionSize)
+			{
+				left_key = begin_left[input_id].key;
+				left_val = begin_left[input_id].val;
+				right_key = begin_right[input_id].key;
+				right_val = begin_right[input_id].val;
+			}
+
+			__local unsigned int _array[CTAS+1];
+
+			if (local_id == 0) _array[0] = 0;
+			__local unsigned int* array = _array + 1;
+
+			array[local_id] = match;
+
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			unsigned int output_id_left = input_id * 2;
+			unsigned int output_id_right = input_id * 2 + 1;
+
+			begin_output[output_id_left].key = left_key;
+			begin_output[output_id_left].val = left_val;
+			begin_output[output_id_right].key = right_key;
+			begin_output[output_id_right].val = right_val;
+		}
+	}
+	
+}
+*/
 __kernel void Join(
 	__global Tuple*      leftBegin,
 	__global Tuple*      rightBegin,

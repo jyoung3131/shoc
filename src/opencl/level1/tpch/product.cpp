@@ -22,6 +22,7 @@ void ProductApp::SetSizes(size_t groupSize, size_t numLeftElements, size_t numRi
 
 size_t ProductApp::RunCPUReference(double &t, vector<Tuple> input1, vector<Tuple> input2, size_t mNumLeftElements, size_t mNumRightElements)
 {
+/*
 	Timer* inst;
 	unsigned int output_size = 0;
 	int start = inst->Start();
@@ -42,6 +43,8 @@ size_t ProductApp::RunCPUReference(double &t, vector<Tuple> input1, vector<Tuple
     t = inst->Stop(start,"CPU");
 
     return output_size;
+*/
+	return 0;
 }
 
 int ProductApp::SetKernel(BmkParams param)
@@ -106,7 +109,7 @@ int ProductApp::SetBuffers(BmkParams param)
 
 	char sizeStr[256];
 	unsigned long long dataSizekB = (lDataSizeInBytes + rDataSizeInBytes)/1024;	
-	sprintf(sizeStr, "% 7dkB",dataSizekB);
+	sprintf(sizeStr, "% 7llukB",dataSizekB);
 	double nsToSec = 1.e-9;
 	double dataInSec;
 	dataInSec = evKrnDataIn1.StartEndRuntime()*nsToSec; 
@@ -148,7 +151,7 @@ int ProductApp::RunKernel(BmkParams param)
 	char sizeStr[256];
 	unsigned long long dataSizekB = (dataSizeInBytes)/1024;	
 	//Filler until we handle multiple sizes 
-	sprintf(sizeStr, "% 7dkB",dataSizekB);
+	sprintf(sizeStr, "% 7llukB",dataSizekB);
     time1Sec = profilingEvt1.StartEndRuntime()*nsToSec;
     (param.resultDB)->AddResult("ProductKernel", sizeStr,"s", time1Sec);
 
@@ -169,7 +172,7 @@ int ProductApp::RunKernel(BmkParams param)
 
 	//----------Validate results against CPU-----------------------
 	//RunCPUReference(cpuTime);
-	
+/*	
 	int diffCount = 0;
 	for(int i=0;i<mCpuOutput.size();i++){
 		if (param.mOutputVals[i].key != mCpuOutput[i].key 
@@ -180,14 +183,13 @@ int ProductApp::RunKernel(BmkParams param)
             //    printf("%d %u %u %u %u %u %u %u %u\t",i, param.mOutputVals[i].key, param.mOutputVals[i].valArray[0],mCpuOutput[i].key, mCpuOutput[i].valArray[0], param.mOutputVals[i].key2, param.mOutputVals[i].valArray[1],mCpuOutput[i].key2, mCpuOutput[i].valArray[1]);
 			diffCount++;
 		}
-	}
-	
+	}	
 	
 	if(diffCount == 0)
 			Println("Verification outcome : PASSED!"); 
 	else
 			Println("Verification outcome : FAILED!"); 
-	
+*/
     //Release the kernel
 	err = clReleaseKernel(mKernel1);
 	CL_CHECK_ERROR(err);

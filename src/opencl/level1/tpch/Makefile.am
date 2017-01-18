@@ -15,5 +15,5 @@ serialopencldir = $(bindir)/Serial/OpenCL
 serialopencl_PROGRAMS = Tpch
 
 #Currently innerJoin, project, select, and unique are included 
-Tpch_SOURCES = innerJoin.cpp project.cpp select.cpp unique.cpp tpch.cpp main.cpp
+Tpch_SOURCES = innerJoin.cpp project.cpp select.cpp unique.cpp product.cpp tpch.cpp main.cpp
 Tpch_LDADD = $(L1LIBS)
