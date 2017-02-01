@@ -47,11 +47,11 @@ size_t SelectionApp::RunCPUReference(double &t, vector<Tuple>input, size_t numEl
     mCpuOutput.clear();
 	output_size = 0;
 		for (unsigned int i = 0; i < numElements; i++) {
-			if (input[i].key < mThreshold ) {
-				Tuple tuple;
-				tuple.key = input[i].key;
-				tuple.valArray[0] = input[i].valArray[0];
-				mCpuOutput.push_back(tuple);
+			if (input[i].tuple.key < mThreshold ) {
+				Tuple tup;
+				tup.tuple.key = input[i].tuple.key;
+				tup.tuple.valArray[0] = input[i].tuple.valArray[0];
+				mCpuOutput.push_back(tup);
 			}
 		}
 		output_size = mCpuOutput.size();
@@ -392,9 +392,9 @@ int SelectionApp::RunKernel(bool isLast, BmkParams param) {
 		//check if the CPU and GPU results match.
 		int diffCount = 0;
 		for(int i=0; i<mCpuOutput.size(); i++) {
-			if (mCpuOutput[i].key != param.mOutputVals[i].key || mCpuOutput[i].valArray[0] != param.mOutputVals[i].valArray[0]) {
+			if (mCpuOutput[i].tuple.key != param.mOutputVals[i].tuple.key || mCpuOutput[i].tuple.valArray[0] != param.mOutputVals[i].tuple.valArray[0]) {
 				if(param.verbose)
-					printf("%d %u %u %u %u\n",i, mCpuOutput[i].key, mCpuOutput[i].valArray[0],param.mOutputVals[i].key, param.mOutputVals[i].valArray[0]);
+					printf("%d %u %u %u %u\n",i, mCpuOutput[i].tuple.key, mCpuOutput[i].tuple.valArray[0],param.mOutputVals[i].tuple.key, param.mOutputVals[i].tuple.valArray[0]);
 				diffCount++;
 			}
 		}

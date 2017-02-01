@@ -15,6 +15,12 @@ typedef struct myTuple
 	VAL_TYPE val_array[3];
 }Tuple;
 
+typedef struct _prod_tuple
+{
+	VAL_TYPE key_array[2];
+	VAL_TYPE val_array[2];
+}prod_tuple;
+
 __kernel void Addition(__global cltype* input1, const unsigned int input2, __global cltype* output, const int data_size){
 
 
@@ -543,9 +549,9 @@ __global Tuple* Dma_new(__global Tuple* out, __local Tuple* in, __local Tuple* i
 	return out + elements;
 
 }
-/*
-__kernel void Product(__global Tuple* left_input, __global Tuple* right_input, __global Tuple* output,
-			__local Tuple* buffer, const unsigned int left_elements, const unsigned int right_elements)
+
+__kernel void Product(__global Tuple* left_input, __global Tuple* right_input, __global prod_tuple* output,
+			__local Tuple* right_local, const unsigned int left_elements, const unsigned int right_elements)
 {
 	int global_id = get_global_id(0);
 	int global_size = get_global_size(0);
@@ -554,55 +560,62 @@ __kernel void Product(__global Tuple* left_input, __global Tuple* right_input, _
 	int group_id = get_group_id(0);
 	int groups = get_num_groups(0);
 
-	const unsigned int partitions = groups
-	unsigned int chunk_size = (leftElements + partitions - 1) / partitions;
-	unsigned int partition_size = (group_id != global_size - 1) ? chunk_size : (elements - group_id * chunk_size);
+	const unsigned int partitions = groups;
+	unsigned int chunk_size = (left_elements + partitions - 1) / partitions;
+	unsigned int partition_size = (group_id != global_size - 1) ? chunk_size : (left_elements - group_id * chunk_size);
 
-	unsigned int begin = chunk_size * group_id;
-	__global Tuple* begin_left = left_input + begin;
-	__global Tuple* begin_right = right_input + begin;
+	for (unsigned int i = 0; i < right_elements; i++) {
+		 right_local[i] = right_input[i];
+	}
+
+	unsigned int beginI = chunk_size * group_id;
+	__global Tuple* begin_left = left_input + beginI;
+	unsigned int beginO = chunk_size * right_elements * group_id;
+	__global prod_tuple* begin_output = output + beginO; 
 
 	unsigned int iterations = (partition_size + local_size - 1) / local_size;
 	unsigned int output_index = 0;
 
 	for (unsigned int i = 0; i < iterations; ++i)
 	{
-		for (unsigned int j = 0; j < iterations; j++)
+		for (unsigned int j = 0; j < right_elements; j++)
 		{
 			VAL_TYPE left_key, left_val;
 			VAL_TYPE right_key, right_val;
 
+			//Is Coalesced Load the best method?
+			//Probably best if input does not fit in shared memory i.e. Select
+			//Might not make a difference if input fits in shared memory i.e. Product
 			unsigned int input_id = i * local_size + local_id;
 			
-			if (input_id < partitionSize)
+			if (input_id < partition_size)
 			{
 				left_key = begin_left[input_id].key;
-				left_val = begin_left[input_id].val;
-				right_key = begin_right[input_id].key;
-				right_val = begin_right[input_id].val;
+				left_val = begin_left[input_id].val_array[0];
+				right_key = right_local[j].key;
+				right_val = right_local[j].val_array[0];
 			}
-
+			//printf("\n%u %u %u %u %u %u %u %u %u\n", group_id, local_id, input_id, i, j, left_key, left_val, right_key, right_val);
+/*
 			__local unsigned int _array[CTAS+1];
 
 			if (local_id == 0) _array[0] = 0;
 			__local unsigned int* array = _array + 1;
 
 			array[local_id] = match;
-
+*/
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			unsigned int output_id_left = input_id * 2;
-			unsigned int output_id_right = input_id * 2 + 1;
+			unsigned int output_id = input_id * right_elements + j;
 
-			begin_output[output_id_left].key = left_key;
-			begin_output[output_id_left].val = left_val;
-			begin_output[output_id_right].key = right_key;
-			begin_output[output_id_right].val = right_val;
+			begin_output[output_id].key_array[0] = left_key;
+			begin_output[output_id].val_array[0] = left_val;
+			begin_output[output_id].key_array[1] = right_key;
+			begin_output[output_id].val_array[1] = right_val;
 		}
 	}
-	
 }
-*/
+
 __kernel void Join(
 	__global Tuple*      leftBegin,
 	__global Tuple*      rightBegin,

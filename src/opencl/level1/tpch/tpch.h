@@ -36,6 +36,54 @@ typedef cl_uint valType;
 extern const cl_platform_id       platform;			//OpenCL platform
 extern cl_program program;
 
+typedef union
+{
+	struct _tuple
+	{
+		valType key;
+		valType valArray[3];
+		bool operator<(const _tuple& rhs) const {
+			if (key == rhs.key) {
+				if (valArray[1] == 0) return valArray[0] < rhs.valArray[0];
+				else {
+					if (valArray[0] == rhs.valArray[0]) return valArray[1] < rhs.valArray[1];
+					else return valArray[0] < rhs.valArray[0];
+				}
+			}
+			else return key < rhs.key;
+		}
+	} tuple;
+	struct _prod_tuple
+	{
+		valType keyArray[2];
+		valType valArray[2];
+		bool operator<(const _prod_tuple& rhs) const {
+			if (keyArray[0] == rhs.keyArray[0]) {
+				if (keyArray[1] == rhs.keyArray[1]) {
+					if (valArray[0] == rhs.valArray[0]) return valArray[1] < rhs.valArray[1];
+					else return valArray[0] < rhs.valArray[0];
+				}
+				else return keyArray[1] < rhs.keyArray[1];
+			}
+			else return keyArray[0] < rhs.keyArray[0];
+		}
+	} prod_tuple;
+
+} Tuple;
+bool join_comp(Tuple i, Tuple j);
+/*
+bool join_comp(Tuple i, Tuple j)
+{
+	if (i.tuple.key == j.tuple.key) {
+		if (i.tuple.valArray[1] == 0) return i.tuple.valArray[0] < j.tuple.valArray[0];
+		else {
+			if (i.tuple.valArray[0] == j.tuple.valArray[0]) return i.tuple.valArray[1] < j.tuple.valArray[1];
+			else return i.tuple.valArray[0] < j.tuple.valArray[0];
+		}
+	}
+	else return i.tuple.key < j.tuple.key;
+}
+*/
 /*typedef struct prodTuple
 {
     valType key, key2;
@@ -44,7 +92,8 @@ extern cl_program program;
 }*/
 
 //With cl_int, the size of this struct is 16 B; otherwise 8 B
-typedef struct myTuple
+
+/*typedef struct myTuple
 {
     //Some operations like product support the combination of multiple keys
     //but adding an array would cause many code changes so is listed as TODO
@@ -67,7 +116,7 @@ typedef struct myTuple
 			}
 		}
 	}
-}Tuple;
+}Tuple;*/
 /*extern cl_context        context;			//OpenCL context
 extern vector<cl_device_id> devices;
 extern vector<cl_device_id> device;			//Device to use

@@ -30,10 +30,10 @@ size_t ProjectApp::RunCPUReference(double &t, vector<Tuple> input, size_t numEle
     mCpuOutput.clear();
 	output_size = 0;
 		for (unsigned int i = 0; i < numElements; i++) {
-				Tuple tuple;
-				tuple.key = input[i].key;
-				tuple.valArray[0] = input[i].valArray[0];
-				mCpuOutput.push_back(tuple);
+				Tuple tup;
+				tup.tuple.key = input[i].tuple.key;
+				tup.tuple.valArray[0] = input[i].tuple.valArray[0];
+				mCpuOutput.push_back(tup);
 		}
 		output_size = mCpuOutput.size();
 
@@ -135,19 +135,28 @@ int ProjectApp::RunKernel(BmkParams param)
     
     //---------Validation------------------------------------	
 	//check if the CPU and GPU results match.
+
+if (param.verbose) {
+for (int i = 0; i < param.numElems; i++) {
+	printf("%u %u                  ", param.mInputVals[0][i].tuple.key, param.mInputVals[0][i].tuple.valArray[0]);
+	//if (i < param.mOutputVals.size()) printf("%u %u", mCpuOutput[i], mCpuOutput[i]);
+printf("\n");
+}
+}
+
 	int diffCount = 0;
 	for(int i=0;i<mCpuOutput.size();i++){
-		if (mCpuOutput[i].key != param.mOutputVals[i].key){
+		if (mCpuOutput[i].tuple.key != param.mOutputVals[i].tuple.key){
             if(param.verbose)
-			printf("%d %u %u\t",i, mCpuOutput[i].key, param.mOutputVals[i].key);
+			printf("%d %u %u\n",i, mCpuOutput[i].tuple.key, param.mOutputVals[i].tuple.key);
 			diffCount++;
 		}
 	}
 
 	if(diffCount == 0)
-			Println("Verification outcome : PASSED!"); 
+			Println(" Verification outcome : PASSED!"); 
 	else
-			Println("Verification outcome : FAILED!"); 
+			Println(" Verification outcome : FAILED!"); 
 
 
     err = clReleaseKernel(mKernel1);

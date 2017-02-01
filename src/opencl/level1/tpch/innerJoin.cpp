@@ -51,9 +51,9 @@ size_t InnerJoinApp::RunCPUReference(double &t, vector<Tuple> left, vector<Tuple
 
   while (l < numLeftElements && r < numRightElements) {
 
-    valType lKey = left[l].key; 
-    valType rKey = right[r].key;
-    valType lElement = left[l].valArray[0];
+    valType lKey = left[l].tuple.key; 
+    valType rKey = right[r].tuple.key;
+    valType lElement = left[l].tuple.valArray[0];
     valType rElement;
 
 
@@ -67,24 +67,24 @@ size_t InnerJoinApp::RunCPUReference(double &t, vector<Tuple> left, vector<Tuple
       ++r;
     else {
       for(unsigned int i = r; i < numRightElements; ++i) {
-        rKey = right[i].key;
-        rElement = right[i].valArray[0];
+        rKey = right[i].tuple.key;
+        rElement = right[i].tuple.valArray[0];
 
         if(lKey < rKey) break;
 
         assert(lKey == rKey);
-		Tuple tuple;
-        tuple.key = lKey;
+		Tuple tup;
+        tup.tuple.key = lKey;
         if(isFirst){
-          tuple.valArray[0] = lElement;
-          tuple.valArray[1] = rElement;
+          tup.tuple.valArray[0] = lElement;
+          tup.tuple.valArray[1] = rElement;
         }
         else{
-          tuple.valArray[0] = lElement;
-          tuple.valArray[1] = left[l].valArray[1];
-          tuple.valArray[2] = rElement;
+          tup.tuple.valArray[0] = lElement;
+          tup.tuple.valArray[1] = left[l].tuple.valArray[1];
+          tup.tuple.valArray[2] = rElement;
         }
-		mCpuOutput.push_back(tuple);
+		mCpuOutput.push_back(tup);
       }
 
       ++l;

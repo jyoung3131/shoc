@@ -56,7 +56,7 @@ size_t UniqueApp::RunCPUReference(double &t, vector<Tuple>input, size_t numEleme
     mCpuOutput.push_back(input[0]);
 
     for (int j=0; j<mNumElements; j++) {
-        if(input[j].valArray[0] != mCpuOutput[uniqCnt].valArray[0]) {
+        if(input[j].tuple.valArray[0] != mCpuOutput[uniqCnt].tuple.valArray[0]) {
             mCpuOutput.push_back(input[j]);
             uniqCnt++;
         }
@@ -151,7 +151,7 @@ int UniqueApp::SetBuffers(BmkParams param) {
     //Pull the value from each tuple and put this in device memory
     vector<valType> inputColumn;
     for (std::vector<Tuple>::iterator it = param.mInputVals[0].begin(); it != param.mInputVals[0].end(); it++) {
-        inputColumn.push_back((*it).valArray[k]);
+        inputColumn.push_back((*it).tuple.valArray[k]);
     }
 	
     err = clEnqueueWriteBuffer(*(param.queue), param.memInput[0], CL_TRUE, 0, dataSizeInBytes,
@@ -338,9 +338,9 @@ int UniqueApp::RunKernel(BmkParams param) {
 
     int diffCount = 0;
     for(int i=0; i<mCpuOutput.size(); i++) {
-			if (mCpuOutput[i].valArray[0] != param.mOutputVals[i].valArray[0]) {
+			if (mCpuOutput[i].tuple.valArray[0] != param.mOutputVals[i].tuple.valArray[0]) {
 				if(param.verbose)
-					printf("%d %u %u\n",i, mCpuOutput[i].valArray[0], param.mOutputVals[i].valArray[0]);
+					printf("%d %u %u\n",i, mCpuOutput[i].tuple.valArray[0], param.mOutputVals[i].tuple.valArray[0]);
             diffCount++;
         }
     }

@@ -22,7 +22,7 @@ void ProductApp::SetSizes(size_t groupSize, size_t numLeftElements, size_t numRi
 
 size_t ProductApp::RunCPUReference(double &t, vector<Tuple> input1, vector<Tuple> input2, size_t mNumLeftElements, size_t mNumRightElements)
 {
-/*
+
 	Timer* inst;
 	unsigned int output_size = 0;
 	int start = inst->Start();
@@ -30,12 +30,12 @@ size_t ProductApp::RunCPUReference(double &t, vector<Tuple> input1, vector<Tuple
 
 	for(int l=0;l<mNumLeftElements;l++){
 		for(int r=0;r<mNumRightElements;r++){
-			Tuple tuple;
-			tuple.key		= input1[l].key;
-            tuple.valArray[0] = input1[l].valArray[0];
-			tuple.key2		= input2[r].key;
-            tuple.valArray[1] = input1[r].valArray[0];
-			mCpuOutput.push_back(tuple);
+			Tuple tpl;
+			tpl.prod_tuple.keyArray[0]	= input1[l].tuple.key;
+            		tpl.prod_tuple.valArray[0] 	= input1[l].tuple.valArray[0];
+			tpl.prod_tuple.keyArray[1]	= input2[r].tuple.key;
+            		tpl.prod_tuple.valArray[1] 	= input2[r].tuple.valArray[0];
+			mCpuOutput.push_back(tpl);
 		}
 	}
 	output_size = mCpuOutput.size();
@@ -43,7 +43,7 @@ size_t ProductApp::RunCPUReference(double &t, vector<Tuple> input1, vector<Tuple
     t = inst->Stop(start,"CPU");
 
     return output_size;
-*/
+
 	return 0;
 }
 
@@ -62,7 +62,7 @@ int ProductApp::SetKernel(BmkParams param)
 	err = clSetKernelArg(mKernel1, 0, sizeof(cl_mem), &param.memInput[0]);
 	err += clSetKernelArg(mKernel1, 1, sizeof(cl_mem),&param.memInput[1]);
 	err += clSetKernelArg(mKernel1, 2, sizeof(cl_mem),&param.memOutput);
-	err += clSetKernelArg(mKernel1, 3, sizeof(Tuple)* mLocalSize, NULL);
+	err += clSetKernelArg(mKernel1, 3, /*sizeof(Tuple)* mLocalSize*/param.devBufferSz, NULL);
 	err += clSetKernelArg(mKernel1, 4, sizeof(unsigned int), &mNumLeftElements);
 	err += clSetKernelArg(mKernel1, 5, sizeof(unsigned int), &mNumRightElements);
     CL_CHECK_ERROR(err);
@@ -135,7 +135,7 @@ int ProductApp::RunKernel(BmkParams param)
 	//ProductTuple *mCpuOutput;
 	
 	//-------------Kernel 1-------------------------
-    
+//printf(" %lu %lu\n", mGlobalSize, mLocalSize); 
     err = clEnqueueNDRangeKernel(*(param.queue), mKernel1, 1, NULL, &mGlobalSize,
 								 &mLocalSize, 0, NULL, &profilingEvt1.CLEvent());
     CL_CHECK_ERROR(err);
@@ -160,7 +160,7 @@ int ProductApp::RunKernel(BmkParams param)
 	err = clEnqueueReadBuffer(*(param.queue), param.memOutput, CL_TRUE, 0,
 			 dataSizeInBytes,
 				&param.mOutputVals.front(), 0, NULL, &profilingEvt2.CLEvent());
-    CL_CHECK_ERROR(err);
+	CL_CHECK_ERROR(err);
 
 	err = clWaitForEvents (1, &profilingEvt2.CLEvent());
 	CL_CHECK_ERROR(err);
@@ -172,24 +172,42 @@ int ProductApp::RunKernel(BmkParams param)
 
 	//----------Validate results against CPU-----------------------
 	//RunCPUReference(cpuTime);
-/*	
+if (param.verbose) {
+for (int i = 0; i < param.numElems; i++) {
+	printf("%u %u                 ", param.mInputVals[0][i].tuple.key, param.mInputVals[0][i].tuple.valArray[0]);
+	printf("%u %u\n", param.mInputVals[1][i].tuple.key, param.mInputVals[1][i].tuple.valArray[0]);
+}
+}
+
+//printf("first element of result is %u %u\n", param.mOutputVals[0].prod_tuple.keyArray[0], param.mOutputVals[0].prod_tuple.valArray[0]);	
 	int diffCount = 0;
 	for(int i=0;i<mCpuOutput.size();i++){
-		if (param.mOutputVals[i].key != mCpuOutput[i].key 
-			|| param.mOutputVals[i].valArray[0] != mCpuOutput[i].valArray[0] 
-			|| param.mOutputVals[i].key2 != mCpuOutput[i].key2 
-			|| param.mOutputVals[i].valArray[1] != mCpuOutput[i].valArray[1]){
-			//if(param.verbose)
-            //    printf("%d %u %u %u %u %u %u %u %u\t",i, param.mOutputVals[i].key, param.mOutputVals[i].valArray[0],mCpuOutput[i].key, mCpuOutput[i].valArray[0], param.mOutputVals[i].key2, param.mOutputVals[i].valArray[1],mCpuOutput[i].key2, mCpuOutput[i].valArray[1]);
+		if (       param.mOutputVals[i].prod_tuple.keyArray[0] != mCpuOutput[i].prod_tuple.keyArray[0] 
+			|| param.mOutputVals[i].prod_tuple.valArray[0] != mCpuOutput[i].prod_tuple.valArray[0] 
+			|| param.mOutputVals[i].prod_tuple.keyArray[1] != mCpuOutput[i].prod_tuple.keyArray[1]
+			|| param.mOutputVals[i].prod_tuple.valArray[1] != mCpuOutput[i].prod_tuple.valArray[1]){
+
+			if(param.verbose) {
+				printf("%d %u %u %u %u\n  %u %u %u %u\n",i, 
+					param.mOutputVals[i].prod_tuple.keyArray[0], 
+					param.mOutputVals[i].prod_tuple.valArray[0],
+					param.mOutputVals[i].prod_tuple.keyArray[1],
+					param.mOutputVals[i].prod_tuple.valArray[1],
+					mCpuOutput[i].prod_tuple.keyArray[0],
+					mCpuOutput[i].prod_tuple.valArray[0], 	
+					mCpuOutput[i].prod_tuple.keyArray[1],
+					mCpuOutput[i].prod_tuple.valArray[1]);
+				cin.get();
+			}
 			diffCount++;
 		}
 	}	
 	
 	if(diffCount == 0)
-			Println("Verification outcome : PASSED!"); 
+			Println(" Verification outcome : PASSED!"); 
 	else
-			Println("Verification outcome : FAILED!"); 
-*/
+			Println(" Verification outcome : FAILED!"); 
+
     //Release the kernel
 	err = clReleaseKernel(mKernel1);
 	CL_CHECK_ERROR(err);

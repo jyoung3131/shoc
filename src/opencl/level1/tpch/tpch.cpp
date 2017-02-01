@@ -277,7 +277,7 @@ void RunTest(BmkParams* param, int npasses, ProgressBar* pb)
     }
     else if(param->testName == "Product")
     {
-        /*ProductApp *product;
+        ProductApp *product;
         product = new ProductApp();
 
         //Handle case where input is smaller than workgroup size
@@ -291,6 +291,8 @@ void RunTest(BmkParams* param, int npasses, ProgressBar* pb)
         //Input 2 
         AllocateDevBuffer(&param->memInput[1], (double)(param->devBufferSz), 0, *(param->ctx));
         //Output - for product can be (input)^2
+//printf("\nAllocating %lu bytes for output\n", param->devBufferSz * param->devBufferSz);
+//printf("param->devBufferSz is %lu bytes\n", param->devBufferSz);
         AllocateDevBuffer(&param->memOutput, (double)((param->devBufferSz)*(param->devBufferSz)), 1, *(param->ctx));
 
         //Right now we assume right and left hand sides have equal numbers of elements
@@ -302,8 +304,8 @@ void RunTest(BmkParams* param, int npasses, ProgressBar* pb)
         {
             //For single input tests
             //Clear and reinitialize the input vectors
-            InitializeHostVector(&(param->mInputVals[0]), param->numElems, false);
-            InitializeHostVector(&(param->mInputVals[1]), param->numElems, false);
+            InitializeHostVector(&(param->mInputVals[0]), param->numElems, false, 0);
+            InitializeHostVector(&(param->mInputVals[1]), param->numElems, false, 0);
             //Clear the output vector
             ResetHostVector(&param->mOutputVals);
             //But resize the output vector to hold new outputs
@@ -335,7 +337,7 @@ void RunTest(BmkParams* param, int npasses, ProgressBar* pb)
         DeallocateDevBuffer(param->memInput[1]);
         DeallocateDevBuffer(param->memOutput);	
 
-        free(product);*/
+        free(product);
 
     }//end Product
     else if(param->testName == "Join")
@@ -1272,6 +1274,7 @@ void SetTestRange(BmkParams* param, int* minIdx, int* maxIdx)
 
         *minIdx = cnt;
         *maxIdx = cnt;
+
     }
     else
     {
@@ -1289,6 +1292,11 @@ void SetTestRange(BmkParams* param, int* minIdx, int* maxIdx)
         *maxIdx = 20;
 	//hardcode cnt to 20 to fix CL_INVALID_VALUE error
 	cnt=20;
+	//TODO - Properly handle product input size
+	if (param->testName == "Product") {
+		*maxIdx = 10;
+		cnt = 10;
+	}
     }
 
     //Size the input and output buffers to hold the largest test input	
@@ -1400,19 +1408,31 @@ void InitializeHostVector(vector<Tuple>* hVect, size_t mNumElements, bool isJoin
          Tuple tpl;
 
             //Pick a non-zero value for the key
-            tpl.key = GetUrandom(mod) + 1;
+            tpl.tuple.key = GetUrandom(mod) + 1;
             //key2 is rarely used except for Product
             //tpl.key2 = 0;
-            tpl.valArray[0] = GetUrandom(mod) + 1;
-            tpl.valArray[1] = 0;
+            tpl.tuple.valArray[0] = GetUrandom(mod) + 1;
+            tpl.tuple.valArray[1] = 0;
 
             hVect->push_back(tpl);
     }
 
     //Some benchmarks like innerJoin require sorted input
     if(isJoin)
-        std::sort(hVect->begin(),hVect->end()); 
+        std::sort(hVect->begin(),hVect->end(), join_comp); 
 
+}
+
+bool join_comp(Tuple i, Tuple j)
+{
+	if (i.tuple.key == j.tuple.key) {
+		if (i.tuple.valArray[1] == 0) return i.tuple.valArray[0] < j.tuple.valArray[0];
+		else {
+			if (i.tuple.valArray[0] == j.tuple.valArray[0]) return i.tuple.valArray[1] < j.tuple.valArray[1];
+			else return i.tuple.valArray[0] < j.tuple.valArray[0];
+		}
+	}
+	else return i.tuple.key < j.tuple.key;
 }
 
 //Reset a host-based vector
@@ -1502,7 +1522,7 @@ void DebugDevMem(BmkParams param, cl_mem devBuf, size_t numElems, bool isTuple, 
 		cout<<"Host address: "<<debugHostBuf<<", device: "<<devBuf<<endl;
 
         	for(int i = 0; i < numElems; i++)
-                	cout<<"["<<i<<"]: "<<debugHostBuf[i].key<<", "<<debugHostBuf[i].valArray[0]<<", "<<debugHostBuf[i].valArray[1]<<endl;
+                	cout<<"["<<i<<"]: "<<debugHostBuf[i].tuple.key<<", "<<debugHostBuf[i].tuple.valArray[0]<<", "<<debugHostBuf[i].tuple.valArray[1]<<endl;
 
 	}
 	
@@ -1516,12 +1536,12 @@ int VerifyResults(BmkParams param, vector<Tuple> cpuRslt, vector<Tuple> accRslt)
 
         for(int i = 0; i < cpuRslt.size(); i++)
 	{
-	    if ((cpuRslt[i].key != accRslt[i].key) && (cpuRslt[i].valArray[0] != accRslt[i].valArray[0]))
+	    if ((cpuRslt[i].tuple.key != accRslt[i].tuple.key) && (cpuRslt[i].tuple.valArray[0] != accRslt[i].tuple.valArray[0]))
 	    {
 	      if(param.verbose && (diffCount < 128))
 	      {
-                cout<<"["<<i<<"]: cpu="<<cpuRslt[i].key<<", "<<cpuRslt[i].valArray[0]<<", "<<cpuRslt[i].valArray[1]<<endl;
-                cout<<"["<<i<<"]: accel="<<accRslt[i].key<<", "<<accRslt[i].valArray[0]<<", "<<accRslt[i].valArray[1]<<endl;
+                cout<<"["<<i<<"]: cpu="<<cpuRslt[i].tuple.key<<", "<<cpuRslt[i].tuple.valArray[0]<<", "<<cpuRslt[i].tuple.valArray[1]<<endl;
+                cout<<"["<<i<<"]: accel="<<accRslt[i].tuple.key<<", "<<accRslt[i].tuple.valArray[0]<<", "<<accRslt[i].tuple.valArray[1]<<endl;
 	      }
       		diffCount++;
             }

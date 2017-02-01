@@ -20,6 +20,10 @@ bin
 libexec
 share
 
+# Tpch ignores
+*.csv
+src/opencl/level1/tpch/Tpch
+
 # Ignore some generated files for in-place build
 .deps
 config/config.mk
