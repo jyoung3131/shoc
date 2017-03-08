@@ -80,13 +80,13 @@ int UniqueApp::SetKernel(BmkParams param) {
     mKernel1_1 = clCreateKernel(program, "CornerCase", &err);
     CL_CHECK_ERROR(err)
 
-    mKernel2 = clCreateKernel(program, "UniquePrefixSum", &err);
+    mKernel2 = clCreateKernel(program, "PrefixSum", &err);
     CL_CHECK_ERROR(err)
 
-    mKernel2_1 = clCreateKernel(program, "UniquePrefixSum", &err);
+    mKernel2_1 = clCreateKernel(program, "PrefixSum", &err);
     CL_CHECK_ERROR(err)
 
-    mKernel2_2 = clCreateKernel(program, "UniqueSum", &err);
+    mKernel2_2 = clCreateKernel(program, "Sum", &err);
     CL_CHECK_ERROR(err)
 
     mKernel3 = clCreateKernel(program, "UniqueGather", &err);
@@ -123,10 +123,9 @@ int UniqueApp::SetKernel(BmkParams param) {
     err += clSetKernelArg(mKernel2_2, 0,sizeof(cl_mem), &mHistogramBuffer);
     err += clSetKernelArg(mKernel2_2, 1,sizeof(cl_mem), &mTotalsBuffer);
     CL_CHECK_ERROR(err);
-   
-	err += clSetKernelArg(mKernel3, 0,sizeof(cl_mem),  &(param.memOutput));
-	err += clSetKernelArg(mKernel3, 1,sizeof(cl_mem), &mTmpOutputBuffer);
-	err += clSetKernelArg(mKernel3, 2,sizeof(cl_mem), &mHistogramBuffer);
+    err += clSetKernelArg(mKernel3, 0,sizeof(cl_mem),  &(param.memOutput));
+    err += clSetKernelArg(mKernel3, 1,sizeof(cl_mem), &mTmpOutputBuffer);
+    err += clSetKernelArg(mKernel3, 2,sizeof(cl_mem), &mHistogramBuffer);
     CL_CHECK_ERROR(err);
     return CL_SUCCESS;
 }

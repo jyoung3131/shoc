@@ -112,24 +112,34 @@ __kernel void Multiplication(__global type* input1, __global type* input2, __glo
 	}
 }
 
-__kernel void Project(__global Tuple* input, __global VAL_TYPE* output, const unsigned int data_size )
+//Column 0 for key, 1 for data
+__kernel void Project(__global Tuple* input, __global VAL_TYPE* output, const unsigned int num_elements, const unsigned int column)
 {  	
-    uint global_size = get_global_size(0);  
+	uint global_size = get_global_size(0);  
+	uint global_id = get_global_id(0);
+	uint local_id = get_local_id(0);
+	uint local_size = get_local_size(0);
+	uint group_id = get_group_id(0);
+	uint groups = get_num_groups(0);
 
-	uint id = get_global_id(0);
+	const unsigned int partitions = groups;
+	unsigned int chunk_size = (num_elements + partitions - 1) / partitions;
+	unsigned int partition_size = (group_id != global_size - 1) ? chunk_size : (num_elements - group_id * chunk_size);
 
-	int count = 1;
-	int stride = global_size;
-	if(data_size > global_size){
-		count = ( (data_size) + global_size-1 )/global_size;  
-	}
-	for( int n=0; n < count; n++, id += stride ) {
+	unsigned int begin = chunk_size * group_id;
+	__global Tuple* begin_input = input + begin;
+	__global VAL_TYPE* begin_output = output + begin;
+	unsigned int iterations = (partition_size + local_size - 1) / local_size;
+	for( int i = 0; i < iterations; i++) {
 	
-		if(id < data_size){
-			VAL_TYPE temp = input[id].key;
-			
-			output[id] = temp;
+		unsigned int input_id = i * local_size + local_id;
 
+		if(input_id < partition_size){
+			//Tuple tup;
+			//tup.key = begin_input[input_id].key;
+			//tup.val_array[0] = begin_input[input_id].val_array[0];
+			Tuple tup = begin_input[input_id];
+			begin_output[input_id] = column ? tup.val_array[0] : tup.key;
 		}
 	}
 }
@@ -262,6 +272,7 @@ __kernel void Sum(__global unsigned int* histogram, __global unsigned int* total
 __kernel void PrefixSum(__global unsigned int* input, __global unsigned int* totals,
 						const unsigned int isTotal)
 {
+printf("Beginning PrefixSum\n");
 	unsigned int carryIn = 0;
 	uint local_id = get_local_id(0);
 	uint global_id = get_global_id(0);
@@ -613,6 +624,155 @@ __kernel void Product(__global Tuple* left_input, __global Tuple* right_input, _
 			begin_output[output_id].key_array[1] = right_key;
 			begin_output[output_id].val_array[1] = right_val;
 		}
+	}
+}
+
+__kernel void Unique(
+	__global VAL_TYPE* input,
+	__global VAL_TYPE* output,
+	__local  VAL_TYPE* buffer,
+	__global unsigned int* histogram,
+	const unsigned int elements)
+{
+printf("Beginning Unique\n");
+	int global_id   = get_global_id(0);
+	int global_size = get_global_size(0);
+	int local_id    = get_local_id(0);
+	int local_size  = get_local_size(0);
+	int group_id    = get_group_id(0);
+	int groups      = get_num_groups(0);
+
+	const unsigned int partitions = groups;
+	unsigned int chunk_size = (elements + partitions - 1) / partitions;
+	unsigned partition_size = (group_id != global_size - 1) ? chunk_size : (elements - group_id * chunk_size);
+
+	//unsigned int begin = chunk_size * group_id;
+	unsigned int begin = chunk_size * group_id;
+	__global VAL_TYPE* begin_input = input + begin;
+	__global VAL_TYPE* begin_output = output + begin;
+
+	unsigned int iterations = (partitions + local_size - 1) / local_size;
+	unsigned int output_index = 0;
+
+	for (unsigned int i = 0; i < iterations; i++) {
+		VAL_TYPE input1, input2;
+		unsigned int input_id = i * local_size + local_id;
+		unsigned int match = 1;
+
+		input1 = begin_input[input_id];
+		if (input_id < partition_size - 1) {
+			input1 = begin_input[input_id];
+			input2 = begin_input[input_id + 1];
+			match = input1 == input2 ? 1 : 0;
+		}
+		unsigned int mathc1 = match;
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		unsigned int values = 0;
+		unsigned int max = 0;
+
+		__local unsigned int _array[CTAS+1];
+
+		if (local_id == 0) _array[0] = values;
+		__local unsigned int* array = _array + 1;
+
+		array[local_id] = match;
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (CTAS >   1) { if(local_id >=   1)
+			{ unsigned int tmp = array[local_id -   1]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS >   2) { if(local_id >=   2)
+			{ unsigned int tmp = array[local_id -   2]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS >   4) { if(local_id >=   4)
+			{ unsigned int tmp = array[local_id -   4]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS >   8) { if(local_id >=   8)
+			{ unsigned int tmp = array[local_id -   8]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS >  16) { if(local_id >=  16)
+			{ unsigned int tmp = array[local_id -  16]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS >  32) { if(local_id >=  32)
+			{ unsigned int tmp = array[local_id -  32]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS >  64) { if(local_id >=  64)
+			{ unsigned int tmp = array[local_id -  64]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS > 128) { if(local_id >= 128)
+			{ unsigned int tmp = array[local_id - 128]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS > 256) { if(local_id >= 256)
+			{ unsigned int tmp = array[local_id - 256]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+		if (CTAS > 512) { if(local_id >= 512)
+			{ unsigned int tmp = array[local_id - 512]; match = tmp + match; }
+				barrier(CLK_LOCAL_MEM_FENCE); array[local_id] = match; barrier(CLK_LOCAL_MEM_FENCE); }
+
+		max = array[CTAS - 1];
+		VAL_TYPE output_id = _array[local_id];
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		values = max;
+
+		if (match == 1) {
+			buffer[output_id] = input1;
+		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		//if (match == 1) buffer[output_id] = input1;
+
+		// ??? What is going on in these next few lines
+		if (local_id < max) {
+			begin_output[output_index + local_id] = buffer[local_id];
+		}
+		output_index += max;
+	}
+	if (local_id == 0) histogram[group_id] = output_index;
+}
+
+__kernel void CornerCase(
+	__global VAL_TYPE* output,
+	__global unsigned int* histogram,
+	const unsigned int localSize)
+{
+printf("Beginning CornerCase\n");
+	unsigned int gid = get_global_id(0);
+	
+	unsigned int index1 = gid*localSize + (histogram[gid] - 1);
+	unsigned int index2 = (gid+1) * localSize;
+
+	VAL_TYPE temp1 = output[index1];
+	VAL_TYPE temp2 = output[index2];
+
+	if (temp1 == temp2) {
+		unsigned int val = histogram[gid] - 1;
+		histogram[gid] = val;
+	}
+}
+
+__kernel void UniqueGather(
+	__global VAL_TYPE* begin,
+	__global VAL_TYPE* in_begin,
+	__global VAL_TYPE* histogram)
+{
+printf("Beginning UniqueGather\n");
+	unsigned int group_id = get_group_id(0);
+
+	__global VAL_TYPE* in_window_begin = in_begin + (get_local_size(0) * group_id);
+
+	unsigned int begin_index = histogram[group_id];
+	unsigned int end_index   = histogram[group_id + 1];
+	unsigned int elements    = end_index - begin_index;
+
+	unsigned int start = get_local_id(0);
+	unsigned int step = get_local_size(0);
+printf("Beginning Scan\n");
+	for (unsigned int i = start; i < elements; i += step) {
+		begin[begin_index + i] = in_window_begin[i];
 	}
 }
 

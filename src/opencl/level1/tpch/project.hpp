@@ -3,7 +3,7 @@
 class ProjectApp
 {
 	private:
-		vector<Tuple>      mCpuOutput;			//Output from the CPU reference code
+		vector<valType>      mCpuOutput;			//Output from the CPU reference code
 		cl_kernel        mKernel1;			//Kernel object
 
 		cl_mem         mTmpOutputBuffer;		//Buffer for output
@@ -25,7 +25,7 @@ class ProjectApp
 		void   FreeDevBuffers();
 		int    SetBuffers(BmkParams param);					//create buffers and push data to GPU.
 		int    SetKernel(BmkParams param);										//create the kernel and set the arguments.
-		size_t RunCPUReference(double&, vector<Tuple>, size_t);	//run the CPU reference.
+		size_t RunCPUReference(double&, vector<Tuple>, size_t, size_t);	//run the CPU reference.
 
 		int    RunKernel(BmkParams param);														//run the kernel and display results.
 		void   Run(BmkParams param);												//start the application.

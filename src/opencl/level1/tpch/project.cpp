@@ -18,7 +18,7 @@ void ProjectApp::FreeDevBuffers()
 
 }
 
-size_t ProjectApp::RunCPUReference(double &t, vector<Tuple> input, size_t numElements)
+size_t ProjectApp::RunCPUReference(double &t, vector<Tuple> input, size_t numElements, size_t col)
 {
 	unsigned int output_size = 0;
 
@@ -30,10 +30,11 @@ size_t ProjectApp::RunCPUReference(double &t, vector<Tuple> input, size_t numEle
     mCpuOutput.clear();
 	output_size = 0;
 		for (unsigned int i = 0; i < numElements; i++) {
-				Tuple tup;
-				tup.tuple.key = input[i].tuple.key;
-				tup.tuple.valArray[0] = input[i].tuple.valArray[0];
-				mCpuOutput.push_back(tup);
+				//Tuple tup;
+				//tup.tuple.key = input[i].tuple.key;
+				//tup.tuple.valArray[0] = input[i].tuple.valArray[0];
+				Tuple tup = input[i];
+				mCpuOutput.push_back(col ? tup.tuple.valArray[0] : tup.tuple.key);
 		}
 		output_size = mCpuOutput.size();
 
@@ -55,6 +56,7 @@ int ProjectApp::SetKernel(BmkParams param)
 	    err = clSetKernelArg(mKernel1,0, sizeof(cl_mem), &(param.memInput[0]));
 		err += clSetKernelArg(mKernel1, 1,sizeof(cl_mem), &(param.memOutput));
 		err += clSetKernelArg(mKernel1, 2, sizeof(unsigned int), &mNumElements);
+		err += clSetKernelArg(mKernel1, 3, sizeof(unsigned int), &(param.project_col));
     	CL_CHECK_ERROR(err);
 
 	return CL_SUCCESS;
@@ -122,7 +124,12 @@ int ProjectApp::RunKernel(BmkParams param)
 
     //TODO: Currently just the output value (a set of keys) is transferred out instead
     //of a tuple; 
-		err = clEnqueueReadBuffer(*(param.queue), param.memOutput, CL_TRUE, 0, dataSizeInBytes, &(param.mOutputVals.front()), 0, NULL, &evKrnDataOut.CLEvent());
+
+	vector<valType> mOutput;
+	mOutput.resize(param.numElems);
+	//err = clEnqueueReadBuffer(*(param.queue), param.memOutput, CL_TRUE, 0, dataSizeInBytes, &(param.mOutputVals.front()), 0, NULL, &evKrnDataOut.CLEvent());
+
+	err = clEnqueueReadBuffer(*(param.queue), param.memOutput, CL_TRUE, 0, dataSizeInBytes, &(mOutput.front()), 0, NULL, &evKrnDataOut.CLEvent());
 	CL_CHECK_ERROR(err);
 
 	err = clWaitForEvents (1, &evKrnDataOut.CLEvent());
@@ -146,9 +153,13 @@ printf("\n");
 
 	int diffCount = 0;
 	for(int i=0;i<mCpuOutput.size();i++){
-		if (mCpuOutput[i].tuple.key != param.mOutputVals[i].tuple.key){
             if(param.verbose)
-			printf("%d %u %u\n",i, mCpuOutput[i].tuple.key, param.mOutputVals[i].tuple.key);
+//Trouble What we do about param.mOutputVals
+			printf("%d %u %u at address %p\n",i, mCpuOutput[i], mOutput[i], &mOutput[i]);
+
+		if (mCpuOutput[i] != mOutput[i]){
+            if(param.verbose)
+			printf("%d %u %u\n",i, mCpuOutput[i], mOutput[i]);
 			diffCount++;
 		}
 	}

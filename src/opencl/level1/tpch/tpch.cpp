@@ -39,6 +39,7 @@ void addBenchmarkSpecOptions(OptionParser &op)
     op.addOption("num-elems", OPT_INT, "0", "Data size (num elements)");
     op.addOption("test-name", OPT_STRING, "Select", "Pass specific test to run"); 
     op.addOption("join-size", OPT_INT, "1", "Specify size range of join output,1-4 with 4 as the largest"); 
+    op.addOption("column", OPT_INT, "0", "Specify column to project from");
 }
 
 
@@ -79,6 +80,7 @@ void RunBenchmark(cl_device_id dev,
     bool quiet = op.getOptionBool("quiet");
     int npasses = op.getOptionInt("passes");
     int joinSz = op.getOptionInt("join-size");
+    int project_col = op.getOptionInt("column");
 
 
     //Define a struct that contains the device  and platform 
@@ -94,6 +96,8 @@ void RunBenchmark(cl_device_id dev,
 
     //
     shocParams.joinSize = joinSz;
+
+    shocParams.project_col = project_col;
 
     //Tuple size is 8-16 B, so max MB option should be divided by this
     //Also, some primitives use a single tuple while others use multiple (e.g., Join)
@@ -505,7 +509,7 @@ void RunTest(BmkParams* param, int npasses, ProgressBar* pb)
             //But resize the output vector to hold new outputs
             param->mOutputVals.resize(param->numElems);
 
-            project->RunCPUReference(cpuTime, param->mInputVals[0], param->numElems);
+            project->RunCPUReference(cpuTime, param->mInputVals[0], param->numElems, param->project_col);
 
             if(param->verbose)
                 Println("CPU : [%f secs]", cpuTime);
@@ -1000,7 +1004,7 @@ void RunTest(BmkParams* param, int npasses, ProgressBar* pb)
             	//But resize the output vector to hold new outputs
             	param->mOutputVals.resize(joinOutSz[1]);
             
-		projectSz = project->RunCPUReference(cpuTime, param->mInputVals[0], joinOutSz[1]);
+		projectSz = project->RunCPUReference(cpuTime, param->mInputVals[0], joinOutSz[1], param->project_col);
                 if(param->verbose)
                     Println("CPU Project: [%f secs]; Output Size: [%d]", cpuTime, projectSz);
 

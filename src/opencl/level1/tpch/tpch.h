@@ -157,7 +157,7 @@ class BmkParams
 	cl_uint vendorId;
 	char dev_vendor_id[128];
 	string devName;
-	
+	unsigned int project_col;	
 
 	//Number of iterations to run a benchmark
 	int nPasses;
