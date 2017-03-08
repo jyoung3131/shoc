@@ -272,7 +272,6 @@ __kernel void Sum(__global unsigned int* histogram, __global unsigned int* total
 __kernel void PrefixSum(__global unsigned int* input, __global unsigned int* totals,
 						const unsigned int isTotal)
 {
-printf("Beginning PrefixSum\n");
 	unsigned int carryIn = 0;
 	uint local_id = get_local_id(0);
 	uint global_id = get_global_id(0);
@@ -634,7 +633,6 @@ __kernel void Unique(
 	__global unsigned int* histogram,
 	const unsigned int elements)
 {
-printf("Beginning Unique\n");
 	int global_id   = get_global_id(0);
 	int global_size = get_global_size(0);
 	int local_id    = get_local_id(0);
@@ -739,7 +737,6 @@ __kernel void CornerCase(
 	__global unsigned int* histogram,
 	const unsigned int localSize)
 {
-printf("Beginning CornerCase\n");
 	unsigned int gid = get_global_id(0);
 	
 	unsigned int index1 = gid*localSize + (histogram[gid] - 1);
@@ -759,7 +756,6 @@ __kernel void UniqueGather(
 	__global VAL_TYPE* in_begin,
 	__global VAL_TYPE* histogram)
 {
-printf("Beginning UniqueGather\n");
 	unsigned int group_id = get_group_id(0);
 
 	__global VAL_TYPE* in_window_begin = in_begin + (get_local_size(0) * group_id);
@@ -770,7 +766,6 @@ printf("Beginning UniqueGather\n");
 
 	unsigned int start = get_local_id(0);
 	unsigned int step = get_local_size(0);
-printf("Beginning Scan\n");
 	for (unsigned int i = start; i < elements; i += step) {
 		begin[begin_index + i] = in_window_begin[i];
 	}
